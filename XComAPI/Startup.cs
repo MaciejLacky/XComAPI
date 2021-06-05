@@ -13,6 +13,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using XComAPI.Data;
+using XComAPI.Services;
 
 namespace XComAPI
 {
@@ -34,7 +35,8 @@ namespace XComAPI
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "XComAPI", Version = "v1" });
             });
-
+            services.AddScoped<IClient, ClientService>();
+            services.AddScoped<IEvent, EventService>();
             services.AddDbContext<XComAPIContext>(options =>
                     options.UseSqlServer(Configuration.GetConnectionString("XComAPIContext")));
         }
