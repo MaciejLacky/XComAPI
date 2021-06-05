@@ -17,7 +17,7 @@ namespace XComAPI.Services
 
         public async Task<Client> AddClient(Client newClient, int idEvent, string name, string email)
         {
-            if (_context.Client.Count(x => x.IdEvent == idEvent) <= _context.Event.FirstOrDefault(x => x.IdEvent == idEvent).MaxNumberOfPeople)
+            if (_context.Client.Count(x => x.IdEvent == idEvent) < _context.Event.FirstOrDefault(x => x.IdEvent == idEvent).MaxNumberOfPeople)
             {
 
                 newClient.IdEvent = idEvent;

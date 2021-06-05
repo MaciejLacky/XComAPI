@@ -40,6 +40,14 @@ namespace XComAPI.Services
 
             if (result != null)
             {
+                if (_context.Client.Any(x=>x.IdEvent == idEvent))
+                {
+                    foreach (var item in _context.Client.Where(x => x.IdEvent == idEvent))
+                    {
+                        _context.Client.Remove(item);
+                        
+                    }
+                }              
                 _context.Event.Remove(result);
                 await _context.SaveChangesAsync();
                 return result;

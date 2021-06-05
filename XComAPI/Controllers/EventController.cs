@@ -6,147 +6,69 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using XComAPI.Data;
+using XComAPI.Services;
 
 namespace XComAPI.Controllers
 {
+    [ApiController]
+    [Route("api/event")]
     public class EventController : Controller
     {
-        private readonly XComAPIContext _context;
+        private readonly IEvent _events;
 
-        public EventController(XComAPIContext context)
+        public EventController(IEvent events)
         {
-            _context = context;
+            _events = events;
         }
 
         // GET: Event
-        public async Task<IActionResult> Index()
+        [HttpGet("ListOfEvents")]
+        public async Task<IEnumerable<Event>> GetEvents()
         {
-            return View(await _context.Event.ToListAsync());
+            return await _events.GetAllEvents();
         }
 
-        // GET: Event/Details/5
-        public async Task<IActionResult> Details(int? id)
+        [HttpPost("CreateEvent")]
+        public async Task<ActionResult<Event>> CreateEvent(Event newEvent, string eventName, DateTime dateFrom, DateTime dateTo, string eventDescription, int maxNumberOfPeople)
         {
-            if (id == null)
+            try
+            {
+
+                if (newEvent == null)
+                    return BadRequest("no events");
+                var createdClient = await _events.AddEvent(newEvent, eventName, dateFrom, dateTo, eventDescription, maxNumberOfPeople);
+
+                return Ok( CreatedAtAction(nameof(GetEvents),
+                    new { id = createdClient.IdEvent }, createdClient));
+            }
+            catch (Exception)
             {
                 return NotFound();
             }
-
-            var @event = await _context.Event
-                .FirstOrDefaultAsync(m => m.IdEvent == id);
-            if (@event == null)
-            {
-                return NotFound();
-            }
-
-            return View(@event);
         }
-
-        // GET: Event/Create
-        public IActionResult Create()
+        [HttpDelete("delete")]
+        public async Task<ActionResult<Event>> DeleteEvent(int idEvent)
         {
-            return View();
-        }
-
-        // POST: Event/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("IdEvent,EventName,DateFrom,DateTo,EventDescription,MaxNumberOfPeople")] Event @event)
-        {
-            if (ModelState.IsValid)
+            try
             {
-                _context.Add(@event);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            return View(@event);
-        }
+                var eventToDelete = await _events.GetEventById(idEvent);
 
-        // GET: Event/Edit/5
-        public async Task<IActionResult> Edit(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var @event = await _context.Event.FindAsync(id);
-            if (@event == null)
-            {
-                return NotFound();
-            }
-            return View(@event);
-        }
-
-        // POST: Event/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("IdEvent,EventName,DateFrom,DateTo,EventDescription,MaxNumberOfPeople")] Event @event)
-        {
-            if (id != @event.IdEvent)
-            {
-                return NotFound();
-            }
-
-            if (ModelState.IsValid)
-            {
-                try
+                if (eventToDelete == null)
                 {
-                    _context.Update(@event);
-                    await _context.SaveChangesAsync();
+                    return NotFound($"Event with Id = {idEvent} not found");
                 }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!EventExists(@event.IdEvent))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
-            }
-            return View(@event);
-        }
 
-        // GET: Event/Delete/5
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null)
+                await _events.DeleteEvent(idEvent);
+                return Ok( CreatedAtAction(nameof(GetEvents),
+                   new { id = eventToDelete.IdEvent }, eventToDelete));
+            }
+            catch (Exception)
             {
                 return NotFound();
             }
-
-            var @event = await _context.Event
-                .FirstOrDefaultAsync(m => m.IdEvent == id);
-            if (@event == null)
-            {
-                return NotFound();
-            }
-
-            return View(@event);
         }
 
-        // POST: Event/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
-        {
-            var @event = await _context.Event.FindAsync(id);
-            _context.Event.Remove(@event);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
 
-        private bool EventExists(int id)
-        {
-            return _context.Event.Any(e => e.IdEvent == id);
-        }
+
     }
 }

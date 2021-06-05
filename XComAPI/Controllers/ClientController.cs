@@ -6,147 +6,45 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using XComAPI.Data;
+using XComAPI.Services;
 
 namespace XComAPI.Controllers
 {
-    public class ClientController : Controller
+    [ApiController]
+    [Route("api/client")]
+    public class ClientController : ControllerBase
     {
-        private readonly XComAPIContext _context;
+        private readonly IClient _clients;
 
-        public ClientController(XComAPIContext context)
+        public ClientController(IClient context)
         {
-            _context = context;
+            _clients = context;
         }
 
-        // GET: Client
-        public async Task<IActionResult> Index()
+
+
+        [HttpPost("SignInToEvent")]
+        public async Task<ActionResult<Client>> CreateClient(Client client, int idEvent, string name, string email)
         {
-            return View(await _context.Client.ToListAsync());
-        }
-
-        // GET: Client/Details/5
-        public async Task<IActionResult> Details(int? id)
-        {
-            if (id == null)
+            try
             {
-                return NotFound();
-            }
-
-            var client = await _context.Client
-                .FirstOrDefaultAsync(m => m.IdClient == id);
-            if (client == null)
-            {
-                return NotFound();
-            }
-
-            return View(client);
-        }
-
-        // GET: Client/Create
-        public IActionResult Create()
-        {
-            return View();
-        }
-
-        // POST: Client/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("IdClient,Name,Email,IdEvent")] Client client)
-        {
-            if (ModelState.IsValid)
-            {
-                _context.Add(client);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            return View(client);
-        }
-
-        // GET: Client/Edit/5
-        public async Task<IActionResult> Edit(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var client = await _context.Client.FindAsync(id);
-            if (client == null)
-            {
-                return NotFound();
-            }
-            return View(client);
-        }
-
-        // POST: Client/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("IdClient,Name,Email,IdEvent")] Client client)
-        {
-            if (id != client.IdClient)
-            {
-                return NotFound();
-            }
-
-            if (ModelState.IsValid)
-            {
-                try
+                if (!(_clients.IsEventExist(idEvent)))
                 {
-                    _context.Update(client);
-                    await _context.SaveChangesAsync();
+                    return BadRequest($"there is no event with id = {idEvent}");
                 }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!ClientExists(client.IdClient))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
+                if (client == null)
+                    return BadRequest("no clients");
+                var createdClient = await _clients.AddClient(client, idEvent, name, email);
+                if (createdClient == null)
+                    return BadRequest("maximum number of people reached in this event");
+                return createdClient;
             }
-            return View(client);
-        }
-
-        // GET: Client/Delete/5
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null)
+            catch (Exception)
             {
                 return NotFound();
             }
-
-            var client = await _context.Client
-                .FirstOrDefaultAsync(m => m.IdClient == id);
-            if (client == null)
-            {
-                return NotFound();
-            }
-
-            return View(client);
         }
 
-        // POST: Client/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
-        {
-            var client = await _context.Client.FindAsync(id);
-            _context.Client.Remove(client);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
 
-        private bool ClientExists(int id)
-        {
-            return _context.Client.Any(e => e.IdClient == id);
-        }
     }
 }
